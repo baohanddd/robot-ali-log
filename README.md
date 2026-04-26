@@ -104,15 +104,18 @@ timeout 10 npx tsx src/index.ts
 
 ## OpenCode 配置
 
+在 `~/.config/opencode/opencode.json` 的 `mcp` 部分添加以下配置（注意：不要填入真实的敏感信息，使用环境变量或密钥管理工具）：
+
 ```json
 {
-  "mcpServers": {
+  "mcp": {
     "ali-log": {
-      "command": "npx",
-      "args": ["tsx", "/path/to/ali-log/src/index.ts"],
-      "env": {
-        "ALICLOUD_ACCESS_KEY_ID": "your-key-id",
-        "ALICLOUD_ACCESS_KEY_SECRET": "your-key-secret",
+      "type": "local",
+      "command": ["npx", "tsx", "/path/to/ali-log/src/index.ts"],
+      "enabled": true,
+      "environment": {
+        "ALICLOUD_ACCESS_KEY_ID": "<YOUR_ACCESS_KEY_ID>",
+        "ALICLOUD_ACCESS_KEY_SECRET": "<YOUR_ACCESS_KEY_SECRET>",
         "RUN_MODE": "mcp"
       }
     }

@@ -1,11 +1,17 @@
-import SlsSdk, { GetLogsRequest } from '@alicloud/sls20201230';
+import { createRequire } from 'module';
 import type { SlsCredentials, QueryParams, QueryResult, LogEntry } from './types.js';
+
+const require = createRequire(import.meta.url);
 
 export class SlsClient {
   private client: any;
+  private sdk: any;
 
   constructor(credentials: SlsCredentials) {
-    this.client = new (SlsSdk as any)({
+    const mod = require('@alicloud/sls20201230');
+    const Client = mod.default || mod;
+    this.sdk = mod;
+    this.client = new Client({
       endpoint: `${credentials.region}.log.aliyuncs.com`,
       accessKeyId: credentials.accessKeyId,
       accessKeySecret: credentials.accessKeySecret,
@@ -13,6 +19,7 @@ export class SlsClient {
   }
 
   async queryLogs(params: QueryParams): Promise<QueryResult> {
+    const GetLogsRequest = this.sdk.GetLogsRequest;
     const request = new GetLogsRequest({
       query: params.query,
       from: params.from,
