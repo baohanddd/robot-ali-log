@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { startMcpServer } from './mcp-mode.js';
 import { startDaemon } from './daemon-mode.js';
 

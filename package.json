@@ -10,11 +10,17 @@
     "test": "vitest run",
     "test:watch": "vitest"
   },
-  "keywords": ["mcp", "aliyun", "sls", "log"],
+  "keywords": [
+    "mcp",
+    "aliyun",
+    "sls",
+    "log"
+  ],
   "license": "MIT",
   "dependencies": {
     "@alicloud/sls20201230": "^4.3.0",
-    "@modelcontextprotocol/sdk": "^1.0.4"
+    "@modelcontextprotocol/sdk": "^1.0.4",
+    "dotenv": "^17.4.2"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
