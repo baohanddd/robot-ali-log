@@ -152,18 +152,13 @@ async function handleQueryLogs(
     throw new Error('logstore is required (or set defaultLogstore in config/mcp.json)');
   }
 
-  let query = String(args.query);
+  const query = String(args.query);
   const from = parseTime(String(args.from));
   const to = args.to === 'now' ? Math.floor(Date.now() / 1000) : parseTime(String(args.to));
   const limit = Math.min(Number(args.limit) || 100, 1000);
   const offset = Number(args.offset) || 0;
   const fields = Array.isArray(args.fields) ? args.fields as string[] : undefined;
   const format = ((args.format as string) || 'raw') as 'raw' | 'summary';
-
-  // Auto-add aggregation for summary format
-  if (format === 'summary' && !query.includes('| stats') && !query.includes('| select')) {
-    query += ' | stats count() as count by level';
-  }
 
   const result = await slsClient.queryLogs({
     project,
@@ -214,11 +209,7 @@ async function handleSmartQueryLogs(
   const fields = Array.isArray(args.fields) ? args.fields as string[] : undefined;
   const format = ((args.format as string) || 'raw') as 'raw' | 'summary';
 
-  let query = parsed.query;
-  // Auto-add aggregation for summary format
-  if (format === 'summary' && !query.includes('| stats') && !query.includes('| select')) {
-    query += ' | stats count() as count by level';
-  }
+  const query = parsed.query;
 
   const result = await slsClient.queryLogs({
     project,

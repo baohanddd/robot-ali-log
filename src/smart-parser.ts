@@ -19,7 +19,7 @@ export function chineseToNumber(chinese: string): number | null {
 }
 
 export function extractTimeExpression(desc: string): { timeStr: string; cleanedDesc: string } | null {
-  const pattern = /(?:最近|过去)?\s*(\d+|[一二三四五六七八九十]+)\s*(分钟内|小时内|天内|分钟|小时|个小时|天|小时前|天前|h|m|d)(?:\s*ago)?/i;
+  const pattern = /(?:最近|过去)?\s*(\d+|[一二三四五六七八九十]+)\s*(分钟内|小时内|天内|周内|星期内|分钟|小时|个小时|天|周|星期|小时前|天前|h|m|d|w)(?:\s*ago)?/i;
   const match = desc.match(pattern);
   
   if (!match) return null;
@@ -99,36 +99,50 @@ export async function parseSmartQuery(
   description: string,
   options: { useLLM?: boolean } = {}
 ): Promise<SmartQueryResult> {
-  const localResult = parseLocalQuery(description);
-  
-  if (localResult && localResult.query !== '*') {
-    return localResult;
-  }
-  
-  // If local parsing succeeded but query is '*', still return it when LLM is disabled
-  if (localResult && options.useLLM === false) {
-    return localResult;
-  }
-  
+  // 优先使用 LLM（如果配置了）
   if (options.useLLM !== false) {
     const llmConfig = getLLMConfig();
     if (llmConfig) {
       try {
         const llmResult = await callLLM(description, llmConfig);
         if (llmResult) {
-          const from = parseTime(llmResult.from);
-          const to = llmResult.to === 'now' 
-            ? Math.floor(Date.now() / 1000) 
-            : parseTime(llmResult.to);
+          const from = typeof llmResult.from === 'number' 
+            ? llmResult.from 
+            : llmResult.from === 'now' 
+              ? Math.floor(Date.now() / 1000)
+              : parseTime(llmResult.from);
+          const to = typeof llmResult.to === 'number'
+            ? llmResult.to
+            : llmResult.to === 'now' 
+              ? Math.floor(Date.now() / 1000) 
+              : parseTime(llmResult.to);
           
-          return { query: llmResult.query, from, to, source: 'llm' };
+          return {
+            query: llmResult.query,
+            from,
+            to,
+            source: 'llm',
+          };
         }
       } catch (error) {
         console.error('LLM parsing failed:', error);
+        // LLM 失败，继续用本地规则
       }
     }
   }
   
+  // LLM 未配置或失败，使用本地规则
+  const localResult = parseLocalQuery(description);
+  if (localResult && localResult.query !== '*') {
+    return localResult;
+  }
+  
+  // 如果 useLLM=false 且本地解析返回 *，仍然标记为 local
+  if (localResult && options.useLLM === false) {
+    return { ...localResult, source: 'local' };
+  }
+  
+  // Fallback
   return {
     query: '*',
     from: Math.floor(Date.now() / 1000) - 3600,
