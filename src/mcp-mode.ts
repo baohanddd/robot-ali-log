@@ -157,7 +157,7 @@ async function handleQueryLogs(
   const limit = Math.min(Number(args.limit) || 100, 1000);
   const offset = Number(args.offset) || 0;
   const fields = Array.isArray(args.fields) ? args.fields as string[] : undefined;
-  const format = (args.format as string) || 'raw';
+  const format = ((args.format as string) || 'raw') as 'raw' | 'summary';
 
   // Auto-add aggregation for summary format
   if (format === 'summary' && !query.includes('| stats') && !query.includes('| select')) {
@@ -207,7 +207,7 @@ async function handleSmartQueryLogs(
   const limit = Math.min(Number(args.limit || parsed.limit) || 100, 1000);
   const offset = Number(args.offset) || 0;
   const fields = Array.isArray(args.fields) ? args.fields as string[] : undefined;
-  const format = (args.format as string) || 'raw';
+  const format = ((args.format as string) || 'raw') as 'raw' | 'summary';
 
   let query = parsed.query;
   // Auto-add aggregation for summary format
