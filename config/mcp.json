@@ -1,6 +1,7 @@
 {
   "defaultProject": "fu-project",
   "defaultLogstore": "pro",
+  "defaultRegion": "cn-shenzhen",
   "queryAliases": {
     "sms": ["sms", "短信", "message", "验证码"],
     "error": ["error", "ERROR", "错误", "异常", "exception", "fatal"],

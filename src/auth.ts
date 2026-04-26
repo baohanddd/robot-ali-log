@@ -1,4 +1,5 @@
 import { SlsCredentials } from './types.js';
+import { getDefaultRegion } from './query-expander.js';
 
 export function getCredentials(): SlsCredentials {
   const accessKeyId = process.env.ALICLOUD_ACCESS_KEY_ID;
@@ -20,5 +21,6 @@ export function getCredentials(): SlsCredentials {
 }
 
 export function getRegion(): string {
-  return process.env.ALICLOUD_REGION || 'cn-hangzhou';
+  // Priority: environment variable > config file > default
+  return process.env.ALICLOUD_REGION || getDefaultRegion() || 'cn-hangzhou';
 }

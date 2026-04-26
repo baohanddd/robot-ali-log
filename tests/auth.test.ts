@@ -1,6 +1,14 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { getCredentials, getRegion } from '../src/auth';
 
+vi.mock('../src/query-expander', () => ({
+  getDefaultRegion: vi.fn().mockReturnValue(undefined),
+  getDefaultProject: vi.fn().mockReturnValue(undefined),
+  getDefaultLogstore: vi.fn().mockReturnValue(undefined),
+  expandKeywords: vi.fn().mockImplementation((keyword) => keyword),
+  clearCache: vi.fn(),
+}));
+
 describe('auth', () => {
   const originalEnv = process.env;
 

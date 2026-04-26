@@ -5,6 +5,7 @@ import { fileURLToPath } from 'url';
 interface McpConfig {
   defaultProject?: string;
   defaultLogstore?: string;
+  defaultRegion?: string;
   queryAliases?: Record<string, string[]>;
 }
 
@@ -44,6 +45,10 @@ export function getDefaultProject(): string | undefined {
 
 export function getDefaultLogstore(): string | undefined {
   return loadConfig().defaultLogstore;
+}
+
+export function getDefaultRegion(): string | undefined {
+  return loadConfig().defaultRegion;
 }
 
 export function expandKeywords(input: string): string {
