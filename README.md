@@ -16,9 +16,26 @@
 npm install
 ```
 
-## 环境变量
+## 配置
 
-### 通用配置（两种模式都需要）
+### 使用 .env 文件（推荐）
+
+项目已集成 `dotenv`，支持从 `.env` 文件加载环境变量：
+
+```bash
+# 1. 复制模板文件
+cp .env.example .env
+
+# 2. 编辑 .env 文件，填入你的配置
+vim .env
+
+# 3. 启动服务（会自动加载 .env）
+npx tsx src/index.ts
+```
+
+### 环境变量说明
+
+#### 通用配置（两种模式都需要）
 
 | 变量名 | 必填 | 说明 |
 |--------|------|------|
@@ -26,14 +43,7 @@ npm install
 | ALICLOUD_ACCESS_KEY_SECRET | 是 | 阿里云 AccessKey Secret |
 | ALICLOUD_REGION | 否 | 区域，默认 `cn-hangzhou` |
 
-### MCP 模式
-
-```bash
-export RUN_MODE=mcp
-npx tsx src/index.ts
-```
-
-### 守护进程模式
+#### 守护进程模式专用
 
 | 变量名 | 必填 | 默认值 | 说明 |
 |--------|------|--------|------|
@@ -44,7 +54,26 @@ npx tsx src/index.ts
 | DAEMON_OUTPUT | 否 | `console` | 输出方式: `console` 或 `file` |
 | LOG_FILE_PATH | 否 | `./logs/error.log` | 文件输出路径 |
 
+### 启动示例
+
+**MCP 模式：**
 ```bash
+# 方式 1：使用 .env 文件
+npx tsx src/index.ts
+
+# 方式 2：命令行导出
+export RUN_MODE=mcp
+export ALICLOUD_ACCESS_KEY_ID=xxx
+export ALICLOUD_ACCESS_KEY_SECRET=xxx
+npx tsx src/index.ts
+```
+
+**守护进程模式：**
+```bash
+# 方式 1：使用 .env 文件（配置 RUN_MODE=daemon 及其他变量）
+npx tsx src/index.ts
+
+# 方式 2：命令行导出
 export RUN_MODE=daemon
 export SLS_PROJECT=my-project
 export SLS_LOGSTORE=my-logstore
