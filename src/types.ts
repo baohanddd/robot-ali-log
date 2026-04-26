@@ -11,6 +11,9 @@ export interface QueryParams {
   from: number; // Unix timestamp in seconds
   to: number;   // Unix timestamp in seconds
   limit?: number;
+  offset?: number;
+  fields?: string[];
+  format?: 'raw' | 'summary';
 }
 
 export interface LogEntry {

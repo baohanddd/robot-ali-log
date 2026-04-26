@@ -1,25 +1,32 @@
 import { LogEntry, QueryResult } from './types.js';
 
-export function formatAsMarkdown(result: QueryResult): string {
+export function formatAsMarkdown(
+  result: QueryResult,
+  options?: { fields?: string[]; format?: 'raw' | 'summary' }
+): string {
   if (result.count === 0) {
     return 'No logs found.';
   }
 
   const logs = result.logs;
-  
+
   // Collect all unique keys from log contents
   const allKeys = new Set<string>();
   logs.forEach(log => {
     Object.keys(log.content).forEach(key => allKeys.add(key));
   });
-  
-  const keys = Array.from(allKeys);
+
+  // Filter keys if fields option is provided
+  const keys = options?.fields
+    ? options.fields.filter(f => f !== 'time' && f !== 'Time')
+    : Array.from(allKeys);
+
   const headers = ['Time', ...keys];
-  
+
   // Build header
   let md = '| ' + headers.join(' | ') + ' |\n';
   md += '|' + headers.map(() => ' --- ').join('|') + '|\n';
-  
+
   // Build rows
   logs.forEach(log => {
     const time = new Date(log.time * 1000).toISOString();
@@ -30,7 +37,11 @@ export function formatAsMarkdown(result: QueryResult): string {
     md += '| ' + [time, ...values].join(' | ') + ' |\n';
   });
 
-  if (result.hasMore) {
+  // Add warnings for large result sets
+  if (result.count >= 1000) {
+    md += '\n⚠️ **Warning:** Large result set (' + result.count + ' rows). ';
+    md += 'Consider narrowing time range or using `format: "summary"` for aggregation.\n';
+  } else if (result.hasMore) {
     md += '\n*More results available. Use a smaller time range or increase limit.*';
   }
 

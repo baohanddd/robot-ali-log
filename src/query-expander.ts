@@ -1,5 +1,6 @@
 import { readFileSync } from 'fs';
-import { join } from 'path';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
 
 interface McpConfig {
   defaultProject?: string;
@@ -17,8 +18,10 @@ export function loadConfig(): McpConfig {
   if (cachedConfig) return cachedConfig;
   
   try {
-    // Try module-relative path first (when used as dependency)
-    const moduleConfigPath = join(__dirname, '..', 'config', 'mcp.json');
+    // ESM-compatible way to get current file directory
+    const currentFilePath = fileURLToPath(import.meta.url);
+    const currentDir = dirname(currentFilePath);
+    const moduleConfigPath = join(currentDir, '..', 'config', 'mcp.json');
     const content = readFileSync(moduleConfigPath, 'utf-8');
     cachedConfig = JSON.parse(content) as McpConfig;
     return cachedConfig;

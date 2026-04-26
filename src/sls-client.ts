@@ -25,6 +25,7 @@ export class SlsClient {
       from: params.from,
       to: params.to,
       line: params.limit || 100,
+      offset: params.offset || 0,
     });
 
     try {

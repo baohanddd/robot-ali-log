@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { startMcpServer } from '../src/mcp-mode';
-import { CallToolRequestSchema } from '@modelcontextprotocol/sdk/types';
 
 // Mock MCP SDK
 vi.mock('@modelcontextprotocol/sdk/server', () => ({
@@ -69,27 +68,4 @@ describe('mcp-mode', () => {
     const mockServer = vi.mocked(await startMcpServer());
     expect(mockServer).toBeDefined();
   });
-});
-
-vi.mock('../src/sls-client', () => ({
-  SlsClient: vi.fn().mockImplementation(() => ({
-    queryLogs: mockQueryLogs,
-  })),
-}));
-
-vi.mock('../src/query-expander', () => ({
-  getDefaultProject: vi.fn().mockReturnValue('test-project'),
-  getDefaultLogstore: vi.fn().mockReturnValue('test-logstore'),
-}));
-
-describe('mcp-mode', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it('should create MCP server with correct config', async () => {
-    const server = await startMcpServer();
-    expect(server).toBeDefined();
-  });
-
 });

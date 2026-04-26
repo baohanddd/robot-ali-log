@@ -56,6 +56,20 @@ export async function startMcpServer(): Promise<Server> {
                 type: 'number',
                 description: 'Maximum number of logs to return (default: 100, max: 1000)',
               },
+              offset: {
+                type: 'number',
+                description: 'Pagination offset (default: 0)',
+              },
+              fields: {
+                type: 'array',
+                items: { type: 'string' },
+                description: 'Return only specified fields (e.g. ["level", "message"]). Reduces data transfer.',
+              },
+              format: {
+                type: 'string',
+                enum: ['raw', 'summary'],
+                description: 'Output format: raw (default) or summary (aggregated stats)',
+              },
             },
             required: ['query', 'from', 'to'],
           },
@@ -81,6 +95,20 @@ export async function startMcpServer(): Promise<Server> {
               limit: {
                 type: 'number',
                 description: 'Maximum number of logs to return (default: 100, max: 1000)',
+              },
+              offset: {
+                type: 'number',
+                description: 'Pagination offset (default: 0)',
+              },
+              fields: {
+                type: 'array',
+                items: { type: 'string' },
+                description: 'Return only specified fields (e.g. ["level", "message"]). Reduces data transfer.',
+              },
+              format: {
+                type: 'string',
+                enum: ['raw', 'summary'],
+                description: 'Output format: raw (default) or summary (aggregated stats)',
               },
             },
             required: ['description'],
@@ -123,10 +151,18 @@ async function handleQueryLogs(
     throw new Error('logstore is required (or set defaultLogstore in config/mcp.json)');
   }
 
-  const query = String(args.query);
+  let query = String(args.query);
   const from = parseTime(String(args.from));
   const to = args.to === 'now' ? Math.floor(Date.now() / 1000) : parseTime(String(args.to));
   const limit = Math.min(Number(args.limit) || 100, 1000);
+  const offset = Number(args.offset) || 0;
+  const fields = Array.isArray(args.fields) ? args.fields as string[] : undefined;
+  const format = (args.format as string) || 'raw';
+
+  // Auto-add aggregation for summary format
+  if (format === 'summary' && !query.includes('| stats') && !query.includes('| select')) {
+    query += ' | stats count() as count by level';
+  }
 
   const result = await slsClient.queryLogs({
     project,
@@ -135,13 +171,16 @@ async function handleQueryLogs(
     from,
     to,
     limit,
+    offset,
+    fields,
+    format,
   });
 
   return {
     content: [
       {
         type: 'text',
-        text: formatAsMarkdown(result),
+        text: formatAsMarkdown(result, { fields, format }),
       },
     ],
   };
@@ -166,21 +205,33 @@ async function handleSmartQueryLogs(
   }
 
   const limit = Math.min(Number(args.limit || parsed.limit) || 100, 1000);
+  const offset = Number(args.offset) || 0;
+  const fields = Array.isArray(args.fields) ? args.fields as string[] : undefined;
+  const format = (args.format as string) || 'raw';
+
+  let query = parsed.query;
+  // Auto-add aggregation for summary format
+  if (format === 'summary' && !query.includes('| stats') && !query.includes('| select')) {
+    query += ' | stats count() as count by level';
+  }
 
   const result = await slsClient.queryLogs({
     project,
     logstore,
-    query: parsed.query,
+    query,
     from: parsed.from,
     to: parsed.to,
     limit,
+    offset,
+    fields,
+    format,
   });
 
   return {
     content: [
       {
         type: 'text',
-        text: formatAsMarkdown(result),
+        text: formatAsMarkdown(result, { fields, format }),
       },
     ],
   };
