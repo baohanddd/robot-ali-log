@@ -1,4 +1,4 @@
-import { SlsCredentials } from './types';
+import { SlsCredentials } from './types.js';
 
 export function getCredentials(): SlsCredentials {
   const accessKeyId = process.env.ALICLOUD_ACCESS_KEY_ID;
