@@ -17,12 +17,21 @@ export function loadConfig(): McpConfig {
   if (cachedConfig) return cachedConfig;
   
   try {
-    const configPath = join(process.cwd(), 'config', 'mcp.json');
-    const content = readFileSync(configPath, 'utf-8');
+    // Try module-relative path first (when used as dependency)
+    const moduleConfigPath = join(__dirname, '..', 'config', 'mcp.json');
+    const content = readFileSync(moduleConfigPath, 'utf-8');
     cachedConfig = JSON.parse(content) as McpConfig;
     return cachedConfig;
   } catch {
-    return {};
+    try {
+      // Fallback to cwd (when running directly)
+      const cwdConfigPath = join(process.cwd(), 'config', 'mcp.json');
+      const content = readFileSync(cwdConfigPath, 'utf-8');
+      cachedConfig = JSON.parse(content) as McpConfig;
+      return cachedConfig;
+    } catch {
+      return {};
+    }
   }
 }
 
