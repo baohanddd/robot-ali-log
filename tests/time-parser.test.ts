@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseTime } from '../src/time-parser';
+import { parseTime, chineseToNumber } from '../src/time-parser';
 
 describe('time-parser', () => {
   const now = Math.floor(Date.now() / 1000);
@@ -68,5 +68,50 @@ describe('time-parser', () => {
 
   it('should throw error for invalid format', () => {
     expect(() => parseTime('invalid')).toThrow('Invalid time format');
+  });
+});
+
+describe('chineseToNumber', () => {
+  it('should convert single chinese digits', () => {
+    expect(chineseToNumber('一')).toBe(1);
+    expect(chineseToNumber('五')).toBe(5);
+    expect(chineseToNumber('九')).toBe(9);
+  });
+
+  it('should convert compound chinese numbers', () => {
+    expect(chineseToNumber('十')).toBe(10);
+    expect(chineseToNumber('十五')).toBe(15);
+    expect(chineseToNumber('二十')).toBe(20);
+    expect(chineseToNumber('二十三')).toBe(23);
+    expect(chineseToNumber('三十')).toBe(30);
+    expect(chineseToNumber('九十九')).toBe(99);
+  });
+
+  it('should return null for invalid input', () => {
+    expect(chineseToNumber('百')).toBeNull();
+    expect(chineseToNumber('')).toBeNull();
+    expect(chineseToNumber('abc')).toBeNull();
+  });
+});
+
+describe('parseRelativeTime with chinese', () => {
+  const now = Math.floor(Date.now() / 1000);
+
+  it('should parse "七天"', () => {
+    const result = parseTime('七天');
+    expect(result).toBeGreaterThan(now - 7 * 86400 - 1);
+    expect(result).toBeLessThanOrEqual(now - 7 * 86400);
+  });
+
+  it('should parse "十五分钟"', () => {
+    const result = parseTime('十五分钟');
+    expect(result).toBeGreaterThan(now - 15 * 60 - 1);
+    expect(result).toBeLessThanOrEqual(now - 15 * 60);
+  });
+
+  it('should parse "三小时"', () => {
+    const result = parseTime('三小时');
+    expect(result).toBeGreaterThan(now - 3 * 3600 - 1);
+    expect(result).toBeLessThanOrEqual(now - 3 * 3600);
   });
 });
