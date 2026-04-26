@@ -1,0 +1,25 @@
+{
+  "name": "ali-log-mcp",
+  "version": "1.0.0",
+  "description": "阿里云 SLS MCP Server - 支持 MCP 模式和守护进程模式",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/index.ts",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "keywords": ["mcp", "aliyun", "sls", "log"],
+  "license": "MIT",
+  "dependencies": {
+    "@alicloud/sls20201230": "^4.3.0",
+    "@modelcontextprotocol/sdk": "^1.0.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.0",
+    "vitest": "^1.2.0"
+  }
+}
