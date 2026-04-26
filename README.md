@@ -81,6 +81,27 @@ export POLL_INTERVAL=300
 npx tsx src/index.ts
 ```
 
+#### 后台运行（守护进程模式）
+
+```bash
+# 后台运行并输出到日志文件
+nohup npx tsx src/index.ts > daemon.log 2>&1 &
+echo $! > daemon.pid
+
+# 查看实时日志
+tail -f daemon.log
+
+# 停止守护进程
+kill $(cat daemon.pid)
+```
+
+#### 测试单次查询
+
+```bash
+# 运行 10 秒后自动退出，测试是否能正常查询
+timeout 10 npx tsx src/index.ts
+```
+
 ## OpenCode 配置
 
 ```json
