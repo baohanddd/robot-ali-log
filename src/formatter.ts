@@ -1,11 +1,36 @@
 import { LogEntry, QueryResult } from './types.js';
 
+interface FormatOptions {
+  fields?: string[];
+  format?: 'raw' | 'summary';
+  source?: 'local' | 'llm' | 'fallback';
+  originalQuery?: string;
+}
+
 export function formatAsMarkdown(
   result: QueryResult,
-  options?: { fields?: string[]; format?: 'raw' | 'summary' }
+  options?: FormatOptions
 ): string {
   if (result.count === 0) {
     return 'No logs found.';
+  }
+
+  let md = '';
+
+  // Add query source info header
+  if (options?.source) {
+    const sourceLabel: Record<string, string> = {
+      local: '本地解析',
+      llm: 'LLM增强',
+      fallback: '默认查询'
+    };
+    md += `**解析方式**: ${sourceLabel[options.source] || options.source}\n`;
+  }
+  if (options?.originalQuery) {
+    md += `**查询语句**: \`${options.originalQuery}\`\n`;
+  }
+  if (options?.source || options?.originalQuery) {
+    md += '\n';
   }
 
   const logs = result.logs;
@@ -24,7 +49,7 @@ export function formatAsMarkdown(
   const headers = ['Time', ...keys];
 
   // Build header
-  let md = '| ' + headers.join(' | ') + ' |\n';
+  md += '| ' + headers.join(' | ') + ' |\n';
   md += '|' + headers.map(() => ' --- ').join('|') + '|\n';
 
   // Build rows
