@@ -140,6 +140,40 @@ timeout 10 npx tsx src/index.ts
 | to | string | 是 | 结束时间（如 `now`） |
 | limit | number | 否 | 返回条数限制 |
 
+### smart_query_sls_logs 增强
+
+支持自然语言查询，自动解析时间范围和查询条件：
+
+**示例查询**：
+- `"查询最近七天的ERROR日志"` → 自动解析为最近7天 + level="ERROR"
+- `"过去十五分钟的异常"` → 自动解析为15分钟 + error/异常关键词
+- `"帮我看看上周系统出了什么毛病"` → LLM 解析（需配置）
+
+**LLM 增强配置**（可选）：
+在 `~/.config/opencode/opencode.json` 中添加环境变量：
+
+```json
+{
+  "mcp": {
+    "ali-log": {
+      "environment": {
+        "ENABLE_LLM_QUERY": "true",
+        "LLM_API_KEY": "sk-xxx",
+        "LLM_BASE_URL": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+        "LLM_MODEL": "qwen-plus"
+      }
+    }
+  }
+}
+```
+
+| 环境变量 | 说明 | 默认值 |
+|----------|------|--------|
+| `ENABLE_LLM_QUERY` | 是否启用 LLM 增强 | `false` |
+| `LLM_API_KEY` | LLM API Key | - |
+| `LLM_BASE_URL` | LLM API 地址 | DashScope |
+| `LLM_MODEL` | 模型名称 | `qwen-plus` |
+
 ## 测试
 
 ```bash
