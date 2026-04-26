@@ -1,0 +1,9 @@
+{
+  "defaultProject": "fu-project",
+  "defaultLogstore": "pro",
+  "queryAliases": {
+    "sms": ["sms", "短信", "message", "验证码"],
+    "error": ["error", "ERROR", "错误", "异常", "exception", "fatal"],
+    "api": ["api", "接口", "request", "response", "http"]
+  }
+}

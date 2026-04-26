@@ -33,6 +33,39 @@ describe('time-parser', () => {
     expect(result).toBeLessThanOrEqual(now - 300);
   });
 
+  it('should parse "4小时"', () => {
+    const result = parseTime('4小时');
+    expect(result).toBeGreaterThan(now - 4 * 3600 - 1);
+    expect(result).toBeLessThanOrEqual(now - 4 * 3600);
+  });
+
+  it('should parse "30分钟"', () => {
+    const result = parseTime('30分钟');
+    expect(result).toBeGreaterThan(now - 1801);
+    expect(result).toBeLessThanOrEqual(now - 1800);
+  });
+
+  it('should parse "1天"', () => {
+    const result = parseTime('1天');
+    expect(result).toBeGreaterThan(now - 86401);
+    expect(result).toBeLessThanOrEqual(now - 86400);
+  });
+
+  it('should parse "昨天"', () => {
+    const result = parseTime('昨天');
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
+    d.setHours(0, 0, 0, 0);
+    expect(result).toBe(Math.floor(d.getTime() / 1000));
+  });
+
+  it('should parse "今天"', () => {
+    const result = parseTime('今天');
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    expect(result).toBe(Math.floor(d.getTime() / 1000));
+  });
+
   it('should throw error for invalid format', () => {
     expect(() => parseTime('invalid')).toThrow('Invalid time format');
   });

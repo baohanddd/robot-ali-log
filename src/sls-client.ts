@@ -34,8 +34,8 @@ export class SlsClient {
         request
       );
       const logs: LogEntry[] = (response.body || []).map((log: any) => ({
-        time: log.time || 0,
-        content: log.content || log.contents || {},
+        time: parseInt(log.__time__ || log.time || 0, 10),
+        content: log.content || log.contents || log,
       }));
 
       return {
