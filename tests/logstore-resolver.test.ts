@@ -35,7 +35,7 @@ describe('resolveLogstore', () => {
     vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify(mockConfig));
 
     const result = resolveLogstore('sms');
-    expect(result).toEqual({ project: 'test-project', logstore: 'sms' });
+    expect(result).toEqual({ project: 'test-project', logstore: 'sms', matchedAlias: 'sms' });
   });
 
   it('should prefer longer alias (pro-match over pro)', () => {
@@ -56,7 +56,23 @@ describe('resolveLogstore', () => {
     vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify(mockConfig));
 
     const result = resolveLogstore('pro-match');
-    expect(result).toEqual({ project: 'pro-match-project', logstore: 'pro-match' });
+    expect(result).toEqual({ project: 'pro-match-project', logstore: 'pro-match', matchedAlias: 'pro-match' });
+  });
+
+  it('should match alias within a longer description', () => {
+    const mockConfig = {
+      logstores: [
+        {
+          name: 'sms',
+          project: 'test-project',
+          aliases: ['sms']
+        }
+      ]
+    };
+    vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify(mockConfig));
+
+    const result = resolveLogstore('帮我查 sms 的日志');
+    expect(result).toEqual({ project: 'test-project', logstore: 'sms', matchedAlias: 'sms' });
   });
 
   it('should return null if no match', () => {
@@ -88,7 +104,7 @@ describe('resolveLogstore', () => {
     vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify(mockConfig));
 
     const result = resolveLogstore('sms');
-    expect(result).toEqual({ project: 'test-project', logstore: 'sms' });
+    expect(result).toEqual({ project: 'test-project', logstore: 'sms', matchedAlias: 'SMS' });
   });
 });
 
@@ -132,5 +148,45 @@ describe('extractLogstoreFromDescription', () => {
 
     const result = extractLogstoreFromDescription('errors today');
     expect(result).toEqual({ cleanedDesc: 'errors today' });
+  });
+
+  it('should handle punctuation attached to alias', () => {
+    const mockConfig = {
+      logstores: [
+        {
+          name: 'pro-match',
+          project: 'pro-match-project',
+          aliases: ['pro-match']
+        }
+      ]
+    };
+    vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify(mockConfig));
+
+    const result = extractLogstoreFromDescription('errors in pro-match, today');
+    expect(result).toEqual({
+      project: 'pro-match-project',
+      logstore: 'pro-match',
+      cleanedDesc: 'errors in , today'
+    });
+  });
+
+  it('should remove all occurrences of alias', () => {
+    const mockConfig = {
+      logstores: [
+        {
+          name: 'pro-match',
+          project: 'pro-match-project',
+          aliases: ['pro-match']
+        }
+      ]
+    };
+    vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify(mockConfig));
+
+    const result = extractLogstoreFromDescription('pro-match and pro-match errors');
+    expect(result).toEqual({
+      project: 'pro-match-project',
+      logstore: 'pro-match',
+      cleanedDesc: 'and errors'
+    });
   });
 });

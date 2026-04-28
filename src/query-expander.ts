@@ -81,10 +81,10 @@ export function expandKeywords(input: string): string {
   return input;
 }
 
-export function resolveLogstore(input: string): { project: string; logstore: string } | null {
+export function resolveLogstore(input: string): { project: string; logstore: string; matchedAlias: string } | null {
   const config = loadConfig();
   const logstores = config.logstores || [];
-  const trimmedInput = input.trim().toLowerCase();
+  const lowerInput = input.toLowerCase();
 
   // Collect all aliases from all logstores
   const allAliases: { alias: string; logstore: LogstoreConfig }[] = [];
@@ -98,8 +98,8 @@ export function resolveLogstore(input: string): { project: string; logstore: str
   allAliases.sort((a, b) => b.alias.length - a.alias.length);
 
   for (const { alias, logstore } of allAliases) {
-    if (alias.toLowerCase() === trimmedInput) {
-      return { project: logstore.project, logstore: logstore.name };
+    if (lowerInput.includes(alias.toLowerCase())) {
+      return { project: logstore.project, logstore: logstore.name, matchedAlias: alias };
     }
   }
 
@@ -108,18 +108,20 @@ export function resolveLogstore(input: string): { project: string; logstore: str
 
 export function extractLogstoreFromDescription(desc: string): { project?: string; logstore?: string; cleanedDesc: string } {
   const trimmedDesc = desc.trim();
-  const words = trimmedDesc.split(/\s+/);
+  const resolved = resolveLogstore(trimmedDesc);
 
-  for (const word of words) {
-    const resolved = resolveLogstore(word);
-    if (resolved) {
-      // Escape special regex characters in the matched word
-      const escaped = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const regex = new RegExp(`\\b${escaped}\\b`, 'i');
-      const cleanedDesc = trimmedDesc.replace(regex, '').trim().replace(/\s+/g, ' ');
-      return { project: resolved.project, logstore: resolved.logstore, cleanedDesc };
-    }
+  if (!resolved) {
+    return { cleanedDesc: trimmedDesc };
   }
 
-  return { cleanedDesc: trimmedDesc };
+  // Escape special regex characters in the matched alias
+  const escaped = resolved.matchedAlias.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const regex = new RegExp(escaped, 'gi');
+  const cleanedDesc = trimmedDesc.replace(regex, '').trim().replace(/\s+/g, ' ');
+
+  return {
+    project: resolved.project,
+    logstore: resolved.logstore,
+    cleanedDesc,
+  };
 }
