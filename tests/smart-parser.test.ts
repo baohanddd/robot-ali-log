@@ -1,5 +1,17 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+// Mock fs before importing modules that use it
+vi.mock('fs', async () => {
+  const actual = await vi.importActual<typeof import('fs')>('fs');
+  return {
+    ...actual,
+    readFileSync: vi.fn(),
+  };
+});
+
 import { parseSmartQuery, chineseToNumber, extractTimeExpression, filterTimeWords } from '../src/smart-parser';
+import { clearCache } from '../src/query-expander';
+import * as fs from 'fs';
 
 describe('chineseToNumber', () => {
   it('should convert chinese numbers', () => {
@@ -48,6 +60,23 @@ describe('filterTimeWords', () => {
 });
 
 describe('parseSmartQuery - local', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    clearCache();
+    // Default mock config to preserve existing test behavior
+    const defaultConfig = {
+      defaultProject: 'fu-project',
+      defaultLogstore: 'pro',
+      defaultRegion: 'cn-shenzhen',
+      queryAliases: {
+        sms: ['sms', '短信', 'message', '验证码'],
+        error: ['error', 'ERROR', '错误', '异常', 'exception', 'fatal'],
+        api: ['api', '接口', 'request', 'response', 'http']
+      }
+    };
+    vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify(defaultConfig));
+  });
+
   it('should parse "查询最近七天的ERROR日志"', async () => {
     const result = await parseSmartQuery('查询最近七天的ERROR日志', { useLLM: false });
     expect(result.source).toBe('local');
@@ -65,5 +94,41 @@ describe('parseSmartQuery - local', () => {
     const result = await parseSmartQuery('的', { useLLM: false });
     expect(result.query).toBe('*');
     expect(result.source).toBe('local');
+  });
+
+  it('should extract logstore from description', async () => {
+    const mockConfig = {
+      defaultProject: 'fu-project',
+      defaultLogstore: 'pro',
+      logstores: [
+        {
+          name: 'pro-match',
+          project: 'fu-project',
+          aliases: ['pro-match', '比赛', 'match']
+        }
+      ]
+    };
+    vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify(mockConfig));
+
+    const result = await parseSmartQuery('帮我查询最近10个小时的error日志, pro-match', { useLLM: false });
+    expect(result.source).toBe('local');
+    expect(result.project).toBe('fu-project');
+    expect(result.logstore).toBe('pro-match');
+    expect(result.query).toContain('ERROR');
+  });
+
+  it('should not set project/logstore when no logstore matched', async () => {
+    const mockConfig = {
+      defaultProject: 'fu-project',
+      defaultLogstore: 'pro',
+      logstores: []
+    };
+    vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify(mockConfig));
+
+    const result = await parseSmartQuery('查询最近1小时的error日志', { useLLM: false });
+    expect(result.source).toBe('local');
+    expect(result.project).toBeUndefined();
+    expect(result.logstore).toBeUndefined();
+    expect(result.query).toContain('ERROR');
   });
 });

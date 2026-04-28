@@ -1,11 +1,13 @@
 import { parseTime, chineseToNumber as timeParserChineseToNumber } from './time-parser.js';
-import { expandKeywords } from './query-expander.js';
+import { expandKeywords, extractLogstoreFromDescription } from './query-expander.js';
 import { callLLM, getLLMConfig } from './llm-client.js';
 
 export interface SmartQueryResult {
   query: string;
   from: number;
   to: number;
+  project?: string;
+  logstore?: string;
   limit?: number;
   source: 'local' | 'llm' | 'fallback';
   warning?: string;
@@ -61,6 +63,9 @@ function parseLocalQuery(description: string): SmartQueryResult | null {
     const from = parseTime(timeStr);
     const to = Math.floor(Date.now() / 1000);
     
+    const logstoreResult = extractLogstoreFromDescription(cleanedDesc);
+    cleanedDesc = logstoreResult.cleanedDesc;
+    
     let workingDesc = cleanedDesc;
     for (const word of STOP_WORDS) {
       workingDesc = workingDesc.split(word).join(' ');
@@ -89,7 +94,10 @@ function parseLocalQuery(description: string): SmartQueryResult | null {
       query = '*';
     }
     
-    return { query, from, to, source: 'local' };
+    const result: SmartQueryResult = { query, from, to, source: 'local' };
+    if (logstoreResult.project) result.project = logstoreResult.project;
+    if (logstoreResult.logstore) result.logstore = logstoreResult.logstore;
+    return result;
   } catch (error) {
     return null;
   }
