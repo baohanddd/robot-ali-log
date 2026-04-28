@@ -81,7 +81,7 @@ export function expandKeywords(input: string): string {
   return input;
 }
 
-export function resolveLogstore(input: string): { project: string; logstore: string; matchedAlias: string } | null {
+export function resolveLogstore(input: string): { project: string; logstore: string; matchedAlias: string; matchIndex: number } | null {
   const config = loadConfig();
   const logstores = config.logstores || [];
   const lowerInput = input.toLowerCase();
@@ -98,8 +98,19 @@ export function resolveLogstore(input: string): { project: string; logstore: str
   allAliases.sort((a, b) => b.alias.length - a.alias.length);
 
   for (const { alias, logstore } of allAliases) {
-    if (lowerInput.includes(alias.toLowerCase())) {
-      return { project: logstore.project, logstore: logstore.name, matchedAlias: alias };
+    const lowerAlias = alias.toLowerCase();
+    let idx = lowerInput.indexOf(lowerAlias);
+
+    while (idx !== -1) {
+      // Check word boundaries: before and after must not be alphanumeric (English or Chinese)
+      const before = idx === 0 || !/[a-zA-Z0-9\u4e00-\u9fa5]/.test(input[idx - 1]);
+      const after = idx + alias.length >= input.length || !/[a-zA-Z0-9\u4e00-\u9fa5]/.test(input[idx + alias.length]);
+
+      if (before && after) {
+        return { project: logstore.project, logstore: logstore.name, matchedAlias: alias, matchIndex: idx };
+      }
+
+      idx = lowerInput.indexOf(lowerAlias, idx + 1);
     }
   }
 
@@ -114,10 +125,13 @@ export function extractLogstoreFromDescription(desc: string): { project?: string
     return { cleanedDesc: trimmedDesc };
   }
 
-  // Escape special regex characters in the matched alias
-  const escaped = resolved.matchedAlias.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const regex = new RegExp(escaped, 'gi');
-  const cleanedDesc = trimmedDesc.replace(regex, '').trim().replace(/\s+/g, ' ');
+  const idx = resolved.matchIndex;
+  const aliasLen = resolved.matchedAlias.length;
+
+  // Excise the matched alias with surrounding whitespace normalization
+  const before = trimmedDesc.substring(0, idx).trimEnd();
+  const after = trimmedDesc.substring(idx + aliasLen).trimStart();
+  const cleanedDesc = (before + ' ' + after).trim().replace(/\s+/g, ' ');
 
   return {
     project: resolved.project,
