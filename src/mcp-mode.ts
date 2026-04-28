@@ -194,8 +194,8 @@ async function handleSmartQueryLogs(
   });
 
   // Merge with explicit args if provided
-  const project = String(args.project || getDefaultProject());
-  const logstore = String(args.logstore || getDefaultLogstore());
+  const project = String(args.project || parsed.project || getDefaultProject());
+  const logstore = String(args.logstore || parsed.logstore || getDefaultLogstore());
 
   if (!project) {
     throw new Error('project is required (or set defaultProject in config/mcp.json)');
