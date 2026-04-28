@@ -2,6 +2,18 @@
   "defaultProject": "fu-project",
   "defaultLogstore": "pro",
   "defaultRegion": "cn-shenzhen",
+  "logstores": [
+    {
+      "name": "pro",
+      "project": "fu-project",
+      "aliases": ["pro", "生产", "线上"]
+    },
+    {
+      "name": "pro-match",
+      "project": "fu-project",
+      "aliases": ["pro-match", "匹配", "match"]
+    }
+  ],
   "queryAliases": {
     "sms": ["sms", "短信", "message", "验证码"],
     "error": ["error", "ERROR", "错误", "异常", "exception", "fatal"],
