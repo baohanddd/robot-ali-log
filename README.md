@@ -127,52 +127,21 @@ timeout 10 npx tsx src/index.ts
 
 ### query_sls_logs
 
-查询 SLS 日志。
+查询 SLS 日志。支持 SLS 查询语法（SPL）和 SQL，支持相对时间字符串。
 
 **参数**:
 
 | 参数名 | 类型 | 必填 | 说明 |
 |--------|------|------|------|
-| project | string | 是 | SLS 项目名 |
-| logstore | string | 是 | 日志库名 |
-| query | string | 是 | 查询语句 |
-| from | string | 是 | 开始时间（如 `1h ago`） |
-| to | string | 是 | 结束时间（如 `now`） |
-| limit | number | 否 | 返回条数限制 |
-
-### smart_query_sls_logs 增强
-
-支持自然语言查询，自动解析时间范围和查询条件：
-
-**示例查询**：
-- `"查询最近七天的ERROR日志"` → 自动解析为最近7天 + level="ERROR"
-- `"过去十五分钟的异常"` → 自动解析为15分钟 + error/异常关键词
-- `"帮我看看上周系统出了什么毛病"` → LLM 解析（需配置）
-
-**LLM 增强配置**（可选）：
-在 `~/.config/opencode/opencode.json` 中添加环境变量：
-
-```json
-{
-  "mcp": {
-    "ali-log": {
-      "environment": {
-        "ENABLE_LLM_QUERY": "true",
-        "LLM_API_KEY": "sk-xxx",
-        "LLM_BASE_URL": "https://dashscope.aliyuncs.com/compatible-mode/v1",
-        "LLM_MODEL": "qwen-plus"
-      }
-    }
-  }
-}
-```
-
-| 环境变量 | 说明 | 默认值 |
-|----------|------|--------|
-| `ENABLE_LLM_QUERY` | 是否启用 LLM 增强 | `false` |
-| `LLM_API_KEY` | LLM API Key | - |
-| `LLM_BASE_URL` | LLM API 地址 | DashScope |
-| `LLM_MODEL` | 模型名称 | `qwen-plus` |
+| project | string | 否 | SLS 项目名（未提供时使用 config/mcp.json 中的默认值） |
+| logstore | string | 否 | 日志库名（未提供时使用 config/mcp.json 中的默认值） |
+| query | string | 是 | SLS 查询语句。例：`*`（全部）、`level="ERROR"`（ERROR 日志）、`channel:api AND uri:"/tickets"`（API 请求） |
+| from | string | 是 | 开始时间。支持 Unix 时间戳或相对字符串，如 `1h ago`、`30m ago`、`7d ago`、`昨天` |
+| to | string | 是 | 结束时间。支持 Unix 时间戳、相对字符串或 `now` |
+| limit | number | 否 | 返回条数限制（默认 100，最大 1000） |
+| offset | number | 否 | 分页偏移量（默认 0） |
+| fields | string[] | 否 | 仅返回指定字段，如 `["level", "message", "uri"]` |
+| format | string | 否 | 输出格式：`raw`（默认，返回逐行日志）或 `summary`（聚合统计） |
 
 ## 测试
 
