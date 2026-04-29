@@ -1,4 +1,5 @@
 import OpenAI from 'openai';
+import { LogstoreConfig } from './query-expander.js';
 
 export interface LLMConfig {
   enabled: boolean;
@@ -24,11 +25,33 @@ interface LLMQueryResult {
   query: string;
   from: number | string;
   to: number | string;
+  project?: string;
+  logstore?: string;
+}
+
+function formatLogstoresForPrompt(logstores: LogstoreConfig[]): string {
+  if (logstores.length === 0) return '';
+  
+  const lines = logstores.map(ls => {
+    const aliasStr = ls.aliases.join(', ');
+    return `- ${ls.name}（别名：${aliasStr}）→ project: ${ls.project}`;
+  });
+  
+  return `**可用日志库：**
+${lines.join('\n')}
+
+**日志库识别规则：**
+- 如果用户提到了某个日志库的别名，请在返回中包含 project 和 logstore 字段
+- 如果没有提到，不要返回 project 和 logstore 字段
+- 例如用户说"查 pro-match 的日志"，应返回 "project": "${logstores[0]?.project || 'fu-project'}", "logstore": "pro-match"
+
+`;
 }
 
 export async function callLLM(
   description: string,
-  config: LLMConfig
+  config: LLMConfig,
+  logstores: LogstoreConfig[] = []
 ): Promise<LLMQueryResult | null> {
   try {
     const client = new OpenAI({
@@ -38,6 +61,7 @@ export async function callLLM(
     });
 
     const now = Math.floor(Date.now() / 1000);
+    const logstorePrompt = formatLogstoresForPrompt(logstores);
     const prompt = `将以下自然语言转换为阿里云 SLS 日志查询参数：
 "${description}"
 
@@ -67,6 +91,7 @@ export async function callLLM(
 - 前天上午10点(北京时间) = 前天凌晨2点(UTC) = 1776996000
 - 前天上午12点(北京时间) = 前天凌晨4点(UTC) = 1777003200
 
+${logstorePrompt}
 **查询语法规则：**
 - query 使用 SLS 查询语法（非 SQL）
 - 日志级别查询：必须使用 level="LEVEL_NAME" 格式（精确匹配）

@@ -1,5 +1,5 @@
 import { parseTime, chineseToNumber as timeParserChineseToNumber } from './time-parser.js';
-import { expandKeywords, extractLogstoreFromDescription } from './query-expander.js';
+import { expandKeywords, extractLogstoreFromDescription, loadConfig } from './query-expander.js';
 import { callLLM, getLLMConfig } from './llm-client.js';
 
 export interface SmartQueryResult {
@@ -112,7 +112,8 @@ export async function parseSmartQuery(
     const llmConfig = getLLMConfig();
     if (llmConfig) {
       try {
-        const llmResult = await callLLM(description, llmConfig);
+        const config = loadConfig();
+        const llmResult = await callLLM(description, llmConfig, config.logstores || []);
         if (llmResult) {
           const from = typeof llmResult.from === 'number' 
             ? llmResult.from 
@@ -125,12 +126,17 @@ export async function parseSmartQuery(
               ? Math.floor(Date.now() / 1000) 
               : parseTime(llmResult.to);
           
-          return {
+          const result: SmartQueryResult = {
             query: llmResult.query,
             from,
             to,
             source: 'llm',
           };
+          
+          if (llmResult.project) result.project = llmResult.project;
+          if (llmResult.logstore) result.logstore = llmResult.logstore;
+          
+          return result;
         }
       } catch (error) {
         console.error('LLM parsing failed:', error);
