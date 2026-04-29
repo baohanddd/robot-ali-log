@@ -5,8 +5,7 @@ import { SlsClient } from './sls-client.js';
 import { getCredentials } from './auth.js';
 import { formatAsMarkdown } from './formatter.js';
 import { parseTime } from './time-parser.js';
-import { getDefaultProject, getDefaultLogstore, expandKeywords } from './query-expander.js';
-import { parseSmartQuery } from './smart-parser.js';
+import { getDefaultProject, getDefaultLogstore } from './query-expander.js';
 
 export async function startMcpServer(): Promise<Server> {
   const credentials = getCredentials();
@@ -29,90 +28,50 @@ export async function startMcpServer(): Promise<Server> {
       tools: [
         {
           name: 'query_sls_logs',
-          description: 'Query logs from Alibaba Cloud SLS (Log Service)',
+          description: 'Query logs from Alibaba Cloud SLS (Log Service). You MUST compute the time range explicitly and pass Unix timestamps or relative time strings. Examples: query="*" returns all logs; query="level=\\"ERROR\\"" returns error logs; query="channel:api AND uri:\"/tickets\"" returns API requests to /tickets; from="1h ago" to="now" queries the last hour.',
           inputSchema: {
             type: 'object',
             properties: {
               project: {
                 type: 'string',
-                description: 'SLS project name (optional if configured in config/mcp.json)',
+                description: 'SLS project name. Optional if defaultProject is set in config/mcp.json.',
               },
               logstore: {
                 type: 'string',
-                description: 'SLS logstore name (optional if configured in config/mcp.json)',
+                description: 'SLS logstore name. Optional if defaultLogstore is set in config/mcp.json.',
               },
               query: {
                 type: 'string',
-                description: 'Query string (SLS query syntax or SQL)',
+                description: 'SLS query string. Supports SLS query syntax (SPL) or SQL. Examples: "*" (all logs), "level=\\"ERROR\\"" (error logs), "channel:api AND uri:\"/tickets\"" (api requests to /tickets), "request_id:\\\"4345DC23-3049-474B-B4AE-2FD6796A0566\\\"" (find by request ID).',
               },
               from: {
                 type: 'string',
-                description: 'Start time (unix timestamp or relative like "1h ago", "4小时", "昨天")',
+                description: 'Start time. Can be a Unix timestamp (seconds) or a relative string. Supported: "1h ago", "30m ago", "7d ago", "昨天" (yesterday), "1天前".',
               },
               to: {
                 type: 'string',
-                description: 'End time (unix timestamp or relative like "now")',
+                description: 'End time. Can be a Unix timestamp (seconds), a relative string, or "now".',
               },
               limit: {
                 type: 'number',
-                description: 'Maximum number of logs to return (default: 100, max: 1000)',
+                description: 'Maximum number of logs to return. Default: 100, max: 1000.',
               },
               offset: {
                 type: 'number',
-                description: 'Pagination offset (default: 0)',
+                description: 'Pagination offset. Default: 0.',
               },
               fields: {
                 type: 'array',
                 items: { type: 'string' },
-                description: 'Return only specified fields (e.g. ["level", "message"]). Reduces data transfer.',
+                description: 'Return only specified fields to reduce data transfer. Example: ["level", "message", "uri"]',
               },
               format: {
                 type: 'string',
                 enum: ['raw', 'summary'],
-                description: 'Output format: raw (default) or summary (aggregated stats)',
+                description: 'Output format. raw (default) returns individual log rows. summary returns aggregated stats.',
               },
             },
             required: ['query', 'from', 'to'],
-          },
-        },
-        {
-          name: 'smart_query_sls_logs',
-          description: 'Query logs using natural language description (supports Chinese)',
-          inputSchema: {
-            type: 'object',
-            properties: {
-              description: {
-                type: 'string',
-                description: 'Natural language description like "最近4小时的短信日志" or "查询15分钟内ERROR日志"',
-              },
-              project: {
-                type: 'string',
-                description: 'SLS project name (optional if configured in config/mcp.json)',
-              },
-              logstore: {
-                type: 'string',
-                description: 'SLS logstore name (optional if configured in config/mcp.json)',
-              },
-              limit: {
-                type: 'number',
-                description: 'Maximum number of logs to return (default: 100, max: 1000)',
-              },
-              offset: {
-                type: 'number',
-                description: 'Pagination offset (default: 0)',
-              },
-              fields: {
-                type: 'array',
-                items: { type: 'string' },
-                description: 'Return only specified fields (e.g. ["level", "message"]). Reduces data transfer.',
-              },
-              format: {
-                type: 'string',
-                enum: ['raw', 'summary'],
-                description: 'Output format: raw (default) or summary (aggregated stats)',
-              },
-            },
-            required: ['description'],
           },
         },
       ],
@@ -124,9 +83,6 @@ export async function startMcpServer(): Promise<Server> {
 
     if (request.params.name === 'query_sls_logs') {
       return handleQueryLogs(args, slsClient);
-    }
-    if (request.params.name === 'smart_query_sls_logs') {
-      return handleSmartQueryLogs(args, slsClient);
     }
 
     throw new Error(`Unknown tool: ${request.params.name}`);
@@ -177,62 +133,6 @@ async function handleQueryLogs(
       {
         type: 'text',
         text: formatAsMarkdown(result, { fields, format }),
-      },
-    ],
-  };
-}
-
-async function handleSmartQueryLogs(
-  args: Record<string, unknown>,
-  slsClient: SlsClient
-): Promise<{ content: Array<{ type: string; text: string }> }> {
-  const description = String(args.description);
-  
-  // 使用新的智能解析器
-  const parsed = await parseSmartQuery(description, {
-    useLLM: process.env.ENABLE_LLM_QUERY === 'true'
-  });
-
-  // Merge with explicit args if provided
-  const project = String(args.project || parsed.project || getDefaultProject());
-  const logstore = String(args.logstore || parsed.logstore || getDefaultLogstore());
-
-  if (!project) {
-    throw new Error('project is required (or set defaultProject in config/mcp.json)');
-  }
-  if (!logstore) {
-    throw new Error('logstore is required (or set defaultLogstore in config/mcp.json)');
-  }
-
-  const limit = Math.min(Number(args.limit || parsed.limit) || 100, 1000);
-  const offset = Number(args.offset) || 0;
-  const fields = Array.isArray(args.fields) ? args.fields as string[] : undefined;
-  const format = ((args.format as string) || 'raw') as 'raw' | 'summary';
-
-  const query = parsed.query;
-
-  const result = await slsClient.queryLogs({
-    project,
-    logstore,
-    query,
-    from: parsed.from,
-    to: parsed.to,
-    limit,
-    offset,
-    fields,
-    format,
-  });
-
-  return {
-    content: [
-      {
-        type: 'text',
-        text: formatAsMarkdown(result, { 
-          fields, 
-          format,
-          source: parsed.source,
-          originalQuery: parsed.query,
-        }),
       },
     ],
   };
