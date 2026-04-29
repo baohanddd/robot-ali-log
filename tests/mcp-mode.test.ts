@@ -39,15 +39,6 @@ vi.mock('../src/sls-client', () => ({
 vi.mock('../src/query-expander', () => ({
   getDefaultProject: vi.fn().mockReturnValue('test-project'),
   getDefaultLogstore: vi.fn().mockReturnValue('test-logstore'),
-  expandKeywords: vi.fn().mockImplementation((keyword) => {
-    const aliases: Record<string, string> = {
-      'error': 'error OR ERROR OR 错误 OR 异常',
-      'ERROR': 'error OR ERROR OR 错误 OR 异常',
-      '错误': 'error OR ERROR OR 错误 OR 异常',
-      '异常': 'error OR ERROR OR 错误 OR 异常',
-    };
-    return aliases[keyword] || keyword;
-  }),
 }));
 
 describe('mcp-mode', () => {
@@ -60,12 +51,4 @@ describe('mcp-mode', () => {
     expect(server).toBeDefined();
   });
 
-  it('should handle smart_query_sls_logs tool', async () => {
-    const server = await startMcpServer();
-    expect(server).toBeDefined();
-    
-    // Verify that setRequestHandler was called with ListToolsRequestSchema
-    const mockServer = vi.mocked(await startMcpServer());
-    expect(mockServer).toBeDefined();
-  });
 });
